@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+
+<style id="look-and-feel">
+* { font-family: sans-serif }
+svg { background: lightyellow }
+svg path { stroke: grey }
+
+.box { text-align: center; padding: 12px; }
+.box { border: 1px solid grey; border-radius: 15px; background: white; cursor: default }
+.box:hover { background: whitesmoke }
+.box.tobedeleted { background: red }
+</style>
+
+<style id="css_functional">
+svg { width: 400vw; height: 400vh }
+svg path { marker-mid:url(#markerArrow) }
+
+.box { position: absolute; left: 0; top: 0; }
+.box:hover { background: whitesmoke }
+.box.tobedeleted { background: red }
+</style>
+
+
+<script>
+onload = function(){
+	svg = document.querySelector("svg")
+	drag = null
+}
+
+startdrag = function(event){
+	event.preventDefault()
+	drag = event.target
+	if(drag.classList.contains("prototype")){
+		drag = drag.cloneNode(true)
+		drag.classList.remove("prototype")
+		drag.id = uniqueid()
+		drag.innerHTML = "B"+drag.id
+	}
+	svg.after(drag)
+	drag.x = event.pageX
+	drag.y = event.pageY
+	drag.dx = event.pageX - drag.offsetLeft
+	drag.dy = event.pageY - drag.offsetTop
+}
+
+onmousemove = function(event){
+	event.preventDefault()
+	
+	if(drag){
+		// Don't move box outside svg panel
+		if(event.pageX > drag.dx && event.pageX - drag.dx < svg.getBoundingClientRect().width - drag.offsetWidth) 
+			drag.style.left = event.pageX - drag.dx +"px"
+		if(event.pageY > drag.dy && event.pageY - drag.dy < svg.getBoundingClientRect().height - drag.offsetHeight)
+			drag.style.top = event.pageY - drag.dy +"px"
+
+		// Delete box if it is on left border
+		if(event.pageX < drag.dx)
+			drag.classList.add("tobedeleted")
+		else
+			drag.classList.remove("tobedeleted")
+			
+		drag.scrollIntoView(false)
+		drawarrows()
+	}
+}
+
+onmouseup = function(event){
+	if(drag){
+		if(drag.classList.contains("tobedeleted"))
+			deletebox(drag)
+
+		// If the mouse is on another box, then create arrow
+		if(event.target!=drag && event.target.tagName=="DIV" && event.target.classList.contains("box")){
+			drag.style.left = drag.x - drag.dx +"px"
+			drag.style.top  = drag.y - drag.dy +"px"
+			
+			if(!event.target.classList.contains("prototype"))
+				createarrow(event.target, drag)
+		}
+		drawarrows()
+	}
+	drag = null
+}
+
+deletebox = function(box){
+	// First delete arrows issuing or ending on the box
+	for(a of allarrows()){
+		if(a.source==box.id)
+			a.remove()
+		if(a.target==box.id)
+			a.remove()
+		}
+	box.remove()
+}
+
+createarrow = function(source, target){
+	arrow = document.createElementNS("http://www.w3.org/2000/svg", "path")
+	arrow.source = source.id
+	arrow.target = target.id
+
+	// Prevent return arrows
+	for(a of allarrows())
+		if(arrow.source==a.target && arrow.target==a.source)
+			return
+			
+	// If arrow already exists, remove it
+	for(a of allarrows())
+		if(arrow.source==a.source && arrow.target==a.target){
+			a.remove()
+			return
+	}
+	
+	// Else register it
+	svg.appendChild(arrow)
+}
+
+drawarrows = function(){
+	for(a of allarrows())	
+		if(a.source && a.target) {
+			source = document.getElementById(a.source)
+			target = document.getElementById(a.target)
+
+			x1 = source.offsetLeft + source.offsetWidth/2 - svg.getBoundingClientRect().left
+			y1 = source.offsetTop + source.offsetHeight/2 - svg.getBoundingClientRect().top
+			x3 = target.offsetLeft + target.offsetWidth/2 - svg.getBoundingClientRect().left
+			y3 = target.offsetTop + target.offsetHeight/2 - svg.getBoundingClientRect().top
+			x2 = (x1+x3)/2
+			y2 = (y1+y3)/2
+			a.setAttribute("d", "M"+x1+","+y1+" L"+x2+","+y2+" L"+x3+","+y3)
+	}
+}
+
+allarrows = function(){
+	return document.querySelectorAll("svg path")
+}
+uniqueid = function(){
+	n = 0
+	for(x of document.querySelectorAll(".box"))
+		if(x.id>n)
+			n = Number(x.id)
+	return n+1
+}
+</script>
+
+
+<body>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" >
+  <defs>
+    <marker id="markerArrow" markerWidth="13" markerHeight="13" refX="2" refY="6" orient="auto">
+      <path d="M2,2 L2,11 L10,6 L2,2" />
+    </marker>
+  </defs>
+</svg>
+<div class="box prototype" onmousedown="startdrag(event)">New</div>
+</body>
