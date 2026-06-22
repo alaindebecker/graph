@@ -1,23 +1,26 @@
 <!DOCTYPE html>
 
-<style id="look-and-feel">
-* { font-family: sans-serif }
-svg { background: lightyellow }
-svg path { stroke: grey }
+<style id="appearence">
+	* { font-family: sans-serif }
 
-.box { text-align: center; padding: 12px; }
-.box { border: 1px solid grey; border-radius: 15px; background: white; cursor: default }
-.box:hover { background: whitesmoke }
-.box.tobedeleted { background: red }
+	svg { background: lightyellow }
+	svg path { stroke: grey }
+
+	//#pnl_flow { left:10%; right:10%; top: 10%; bottom: 10% }
+	#pnl_flow { top: 3cap }
+
+	.box { text-align: center; padding: 12px; }
+	.box { border: 1px solid grey; border-radius: 15px; background: white; cursor: default }
+	.box:hover { background: whitesmoke }
+	.box.tobedeleted { background: red }
+
+	#help { position: relative; background: white  }
 </style>
-
-<style id="css_functional">
-svg { width: 400vw; height: 400vh }
-svg path { marker-mid:url(#markerArrow) }
-
-.box { position: absolute; left: 0; top: 0; }
-.box:hover { background: whitesmoke }
-.box.tobedeleted { background: red }
+<style id="functional">
+	#pnl_flow { position: absolute; }
+	svg { width: 400vw; height: 400vh }
+	svg path { marker-mid:url(#markerArrow) }
+	.box { position: absolute; left: 0; top: 0; }
 </style>
 
 
@@ -25,36 +28,53 @@ svg path { marker-mid:url(#markerArrow) }
 onload = function(){
 	svg = document.querySelector("svg")
 	drag = null
+
+	addEventListener("mousedown", function(event) {
+		dragstart(event.target, event.pageX, event.pageY) })
+	addEventListener("touchstart", function(event) {
+		dragstart(event.target, event.touches[0].pageX, event.touches[0].pageY) })
+
+	addEventListener("mousemove", function(event) {
+		dragmove(event.target, event.pageX, event.pageY) })
+	addEventListener("touchmove", function(event) {
+		dragmove(event.target, event.touches[0].pageX, event.touches[0].pageY) })
+
+	addEventListener("mouseup", function(event) {
+		dragend(event.target) })
+	addEventListener("touchend", function(event) {
+		dragend(event.target) })
 }
 
-startdrag = function(event){
-	event.preventDefault()
-	drag = event.target
-	if(drag.classList.contains("prototype")){
-		drag = drag.cloneNode(true)
-		drag.classList.remove("prototype")
-		drag.id = uniqueid()
-		drag.innerHTML = "B"+drag.id
+dragstart = function(element, x, y){
+	//console.log("start", element, x, y)
+	if(element.classList.contains("box")){
+		event.preventDefault()
+		drag = element
+		// Create box by draging the prototype box
+		if(drag.classList.contains("prototype")){
+			drag = drag.cloneNode(true)
+			drag.classList.remove("prototype")
+			drag.id = uniqueid()
+			drag.innerHTML = "B"+drag.id
+		}
+		svg.after(drag)
+		drag.x = x
+		drag.y = y
+		drag.dx = x - element.offsetLeft
+		drag.dy = y - element.offsetTop	
 	}
-	svg.after(drag)
-	drag.x = event.pageX
-	drag.y = event.pageY
-	drag.dx = event.pageX - drag.offsetLeft
-	drag.dy = event.pageY - drag.offsetTop
 }
-
-onmousemove = function(event){
-	event.preventDefault()
-	
+dragmove = function(element, x, y){
+	//console.log("move", element, x,y)
 	if(drag){
-		// Don't move box outside svg panel
-		if(event.pageX > drag.dx && event.pageX - drag.dx < svg.getBoundingClientRect().width - drag.offsetWidth) 
-			drag.style.left = event.pageX - drag.dx +"px"
-		if(event.pageY > drag.dy && event.pageY - drag.dy < svg.getBoundingClientRect().height - drag.offsetHeight)
-			drag.style.top = event.pageY - drag.dy +"px"
-
+		//if(0<x-drag.dx && x-drag.dx<drag.parentElement.offsetWidth-drag.offsetWidth)
+		if(0<x-drag.dx && x-drag.dx<svg.clientWidth-drag.offsetWidth)
+			drag.style.left = x-drag.dx +"px"
+		if(0<y-drag.dy && y-drag.dy<svg.clientHeight-drag.offsetHeight)
+			drag.style.top  = y - drag.dy +"px"
+		
 		// Delete box if it is on left border
-		if(event.pageX < drag.dx)
+		if(x < drag.dx)
 			drag.classList.add("tobedeleted")
 		else
 			drag.classList.remove("tobedeleted")
@@ -63,80 +83,80 @@ onmousemove = function(event){
 		drawarrows()
 	}
 }
+dragend = function(element){
+	//console.log("end")
+	if(drag && drag.classList.contains("tobedeleted"))
+		deletebox(drag)
+	
+	// If the mouse is on another box, then create arrow
+	if(event.target.tagName=="DIV" && event.target.classList.contains("box") && event.target!=drag){
+		drag.style.left = drag.x - drag.dx +"px"
+		drag.style.top  = drag.y - drag.dy +"px"
 
-onmouseup = function(event){
-	if(drag){
-		if(drag.classList.contains("tobedeleted"))
-			deletebox(drag)
-
-		// If the mouse is on another box, then create arrow
-		if(event.target!=drag && event.target.tagName=="DIV" && event.target.classList.contains("box")){
-			drag.style.left = drag.x - drag.dx +"px"
-			drag.style.top  = drag.y - drag.dy +"px"
-			
-			if(!event.target.classList.contains("prototype"))
-				createarrow(event.target, drag)
-		}
-		drawarrows()
+		if(!event.target.classList.contains("prototype"))
+			createarrow(event.target, drag)
 	}
+
+	drawarrows()
 	drag = null
 }
 
 deletebox = function(box){
-	// First delete arrows issuing or ending on the box
-	for(a of allarrows()){
-		if(a.source==box.id)
+	// First delete arrows starting or ending on this box
+	for(a of allarrows())
+		if(a.source==box.id || a.target==box.id)
 			a.remove()
-		if(a.target==box.id)
-			a.remove()
-		}
 	box.remove()
 }
 
 createarrow = function(source, target){
-	arrow = document.createElementNS("http://www.w3.org/2000/svg", "path")
-	arrow.source = source.id
-	arrow.target = target.id
-
-	// Prevent return arrows
+	// Prevent opposite pairs of arrow 
 	for(a of allarrows())
-		if(arrow.source==a.target && arrow.target==a.source)
+		if(source.id==a.target && target.id==a.source)
 			return
-			
+
 	// If arrow already exists, remove it
 	for(a of allarrows())
-		if(arrow.source==a.source && arrow.target==a.target){
+		if(source.id==a.source && target.id==a.target){
 			a.remove()
 			return
 	}
 	
-	// Else register it
-	svg.appendChild(arrow)
+	// Else create arrow
+	arrow = document.createElementNS("http://www.w3.org/2000/svg", "path")
+	arrow.source = source.id
+	arrow.target = target.id
+	svg.appendChild(arrow)	
 }
 
 drawarrows = function(){
-	for(a of allarrows())	
-		if(a.source && a.target) {
+	for(a of allarrows())
+		if(a.source && a.target){
 			source = document.getElementById(a.source)
 			target = document.getElementById(a.target)
-
-			x1 = source.offsetLeft + source.offsetWidth/2 - svg.getBoundingClientRect().left
-			y1 = source.offsetTop + source.offsetHeight/2 - svg.getBoundingClientRect().top
-			x3 = target.offsetLeft + target.offsetWidth/2 - svg.getBoundingClientRect().left
-			y3 = target.offsetTop + target.offsetHeight/2 - svg.getBoundingClientRect().top
+			
+			x1 = source.offsetLeft + source.offsetWidth/2
+			y1 = source.offsetTop + source.offsetHeight/2
+			x3 = target.offsetLeft + target.offsetWidth/2
+			y3 = target.offsetTop + target.offsetHeight/2
 			x2 = (x1+x3)/2
 			y2 = (y1+y3)/2
-			a.setAttribute("d", "M"+x1+","+y1+" L"+x2+","+y2+" L"+x3+","+y3)
+			a.setAttribute("d", "M"+x1+","+y1+" L"+x2+","+y2+" L"+x3+","+y3)			
 	}
+}
+
+allboxes = function(){
+	return document.querySelectorAll(".box")
 }
 
 allarrows = function(){
 	return document.querySelectorAll("svg path")
 }
+
 uniqueid = function(){
 	n = 0
 	for(x of document.querySelectorAll(".box"))
-		if(x.id>n)
+		if(Number(x.id)>n)
 			n = Number(x.id)
 	return n+1
 }
@@ -144,12 +164,19 @@ uniqueid = function(){
 
 
 <body>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" >
-  <defs>
-    <marker id="markerArrow" markerWidth="13" markerHeight="13" refX="2" refY="6" orient="auto">
-      <path d="M2,2 L2,11 L10,6 L2,2" />
-    </marker>
-  </defs>
-</svg>
-<div class="box prototype" onmousedown="startdrag(event)">New</div>
+	<div id="pnl_flow">
+		<svg version="1.1" xmlns="http://www.w3.org/2000/svg" >
+			<defs>
+				<marker id="markerArrow" markerWidth="13" markerHeight="13" refX="2" refY="6" orient="auto">
+					<path d="M2,2 L2,11 L10,6 L2,2" />
+				</marker>
+			</defs>
+		</svg>
+		<div class="box prototype">box</div>
+	</div>
+	<details id="help"><summary>Help</summary><ul>
+		<li>Move the boxes with drag & drop</li>
+		<li>Create a box by draging the box labeled "New"</li>
+		<li>Delete a box by draging it on the left of the panel</li>
+	</ul></details>
 </body>
