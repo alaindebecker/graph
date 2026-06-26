@@ -4,23 +4,25 @@
 	* { font-family: sans-serif }
 
 	svg { background: lightyellow }
-	svg path { stroke: grey }
-
-	//#pnl_flow { left:10%; right:10%; top: 10%; bottom: 10% }
 	#pnl_flow { top: 3cap }
 
 	.box { text-align: center; padding: 12px; }
 	.box { border: 1px solid grey; border-radius: 15px; background: white; cursor: default }
-	.box:hover { background: whitesmoke }
-	.box.tobedeleted { background: red }
+	.box:hover { background: gainsboro }
+	.box.tobedeleted { border: 1px solid lightgrey; color: darkgrey; background: whitesmoke }
+
+	.arrow { stroke: grey; fill: grey }
+	.arrow:hover { stroke-width:4; }
 
 	#help { position: relative; background: white  }
 </style>
 <style id="functional">
 	#pnl_flow { position: absolute; }
 	svg { width: 400vw; height: 400vh }
-	svg path { marker-mid:url(#markerArrow) }
 	.box { position: absolute; left: 0; top: 0; }
+	.arrow { marker-mid: url("#markerArrow") }
+	.arrow { position: absolute; }
+	.arrow:hover { stroke-width:3 }
 </style>
 
 
@@ -126,6 +128,7 @@ createarrow = function(source, target){
 	arrow = document.createElementNS("http://www.w3.org/2000/svg", "path")
 	arrow.source = source.id
 	arrow.target = target.id
+	arrow.classList.add("arrow")
 	svg.appendChild(arrow)	
 }
 
@@ -165,10 +168,14 @@ uniqueid = function(){
 
 <body>
 	<div id="pnl_flow">
-		<svg version="1.1" xmlns="http://www.w3.org/2000/svg" >
+		<svg xmlns="http://www.w3.org/2000/svg" >
 			<defs>
-				<marker id="markerArrow" markerWidth="13" markerHeight="13" refX="2" refY="6" orient="auto">
-					<path d="M2,2 L2,11 L10,6 L2,2" />
+				<marker id="markerArrow"
+					markerWidth="12" markerHeight="12" 
+					refX="6" refY="6" 
+					orient="auto"
+					stroke="context-stroke" fill="context-fill">
+					<path d="M0,2 L0,11 L12,6 z" />
 				</marker>
 			</defs>
 		</svg>
